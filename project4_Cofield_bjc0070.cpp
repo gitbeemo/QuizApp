@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 
 using namespace std;
@@ -44,6 +45,19 @@ void addChoice (Question& q) {
 		q.choices = newChoice;
 	}
 }
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Function to check correct answer for MCQ */
+bool isCorrectAnswer(Question& q, const string& correctAnswer) {
+	Choice* current = q.choices;
+	char correctChar = tolower(correctAnswer[0]);
+	char allowedChar = 'a';
+	while (current != nullptr) {
+		if (correctChar == allowedChar) return true;
+		current = current->next;
+		++allowedChar;
+	}
+	return false;
+}
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Function to add a question to linked list */
@@ -66,13 +80,37 @@ void addQuestion (Node*& head) {
 
 	cout << "Enter a question: ";
 	cin >> q.question;
+	cout << "[At any time, type 'quit()' to exit]\n";
 	getline(cin, q.question);
 
 	if (q.type == "mcq") {
 		addChoice(q);
-	} else if (q.type == "tf") {
+		while (true) {
+			cout << "Select correct answer: ";
+			cin >> q.correctAnswer;
+			transform(q.correctAnswer.begin(), q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
 
+			if (isCorrectAnswer(q, q.correctAnswer)) {
+				break;
+			}
+			cout << "[Answer not recognized, please try again!]\n";
+		}
+
+	} else if (q.type == "tf") {
+		while (true) {
+			cout << "Select correct answer: ";
+			cin >> q.correctAnswer;
+			transform(q.correctAnswer.begin(),q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
+			if (q.correctAnswer == "true" || q.correctAnswer == "false") {
+				break;
+
+			}
+			cout << "[Answer not recognized, please try again!]\n";
+		}
 	} else if (q.type == "wr") {
+		cout << "Type correct answer: ";
+		cin.ignore();
+		getline(cin, q.correctAnswer);
 	}
 }
 
