@@ -4,7 +4,7 @@
 using namespace std;
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-/* name */
+/* Structures */
 struct Choice {
 	string text;
 	Choice* next;
@@ -23,6 +23,8 @@ struct Node {
 	Node* next;
 };
 
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Create */
 Choice* createChoice(const std::string& choiceText) {
 	Choice* newChoice = new Choice;
 	newChoice->text = choiceText;
@@ -37,7 +39,8 @@ Node* createNode(const Question& q) {
 	return newNode;
 }
 
-
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Add MCQ Choice */
 void addChoice (Question& q) {
 	string choiceText;
 	bool hasChoice = false;
@@ -58,6 +61,7 @@ void addChoice (Question& q) {
 		hasChoice = true;
 	}
 }
+
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Function to check correct answer for MCQ */
 bool isCorrectAnswer(Question& q, const string& correctAnswer) {
@@ -93,10 +97,11 @@ void addQuestion (Node*& head) {
 
 	cout << "Enter a question: ";
 	cin >> q.question;
-	cout << "[At any time, type 'quit()' to exit]\n";
+
 	getline(cin, q.question);
 
 	if (q.type == "mcq") {
+		cout << "[At any time, type 'quit()' to exit]\n";
 		addChoice(q);
 		while (true) {
 			cout << "Select correct answer: ";
@@ -142,6 +147,25 @@ void addQuestion (Node*& head) {
 }
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Display Session Log */
+void displaySessionLog(Node*& head) {
+	Node* current = head;
+	int totalQuestions = 0;
+	double totalPointValues = 0.0;
+
+	cout << "=== Session Log ===\n";
+	while (current != nullptr) {
+		totalQuestions++;
+		totalPointValues += current -> question.pointValue;
+		current = current -> next;
+	}
+
+
+	cout << "Total questions: " << totalQuestions;
+	cout << "\nTotal point values: " << totalPointValues;
+}
+
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Main Function */
 int main () {
 	Node* head = nullptr; // init the node ptr
@@ -157,6 +181,11 @@ int main () {
 		cin >> userContinueInput;
 		++qNumber;
 	} while (tolower(userContinueInput)=='y');
+
+	// Session Log after no continuation
+	if (userContinueInput=='n') {
+		displaySessionLog(head);
+	}
 
 
 }
