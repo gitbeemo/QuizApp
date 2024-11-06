@@ -30,19 +30,32 @@ Choice* createChoice(const std::string& choiceText) {
 	return newChoice;
 }
 
+Node* createNode(const Question& q) {
+	Node* newNode = new Node;
+	newNode->question = q;
+	newNode->next = nullptr;
+	return newNode;
+}
+
 
 void addChoice (Question& q) {
 	string choiceText;
+	bool hasChoice = false;
 	for (int i = 0; i < 10; ++i) {
 		cout << "Enter choice " << char('A' + i) << ": ";
 		getline(cin, choiceText);
-		if (choiceText == "quit()") {
+		if (choiceText == "quit()" && hasChoice) {
 			break;
+		} else if (choiceText == "quit()" && !hasChoice) {
+			cout << "Add one choice before quitting.\n";
+			--i;
+			continue;
 		}
 		Choice* newChoice = createChoice(choiceText);
 
 		newChoice -> next = q.choices;
 		q.choices = newChoice;
+		hasChoice = true;
 	}
 }
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -112,6 +125,20 @@ void addQuestion (Node*& head) {
 		cin.ignore();
 		getline(cin, q.correctAnswer);
 	}
+
+	cout << "Enter point value: ";
+
+	while ( !(cin >> q.pointValue) || q.pointValue <= 0.0) {
+		cout << "[Not a point value, please try again!]\n";
+		cin.clear();
+		cin.ignore(10000, '\n');
+		cout << "Enter point value: ";
+	}
+	cin.ignore();
+
+	Node* newNode = createNode(q);
+	newNode -> next = head;
+	head = newNode;
 }
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -119,13 +146,16 @@ void addQuestion (Node*& head) {
 int main () {
 	Node* head = nullptr; // init the node ptr
 	char userContinueInput;
+	int qNumber = 0;
 
 	cout << "*** Welcome to Ben's Testing Service ***\n\n";
 
 	do {
+		cout << "=== Question " << qNumber +1 << " ===\n";
 		addQuestion(head);
 		cout << "Question saved. Continue? [y/n]: ";
 		cin >> userContinueInput;
+		++qNumber;
 	} while (tolower(userContinueInput)=='y');
 
 
