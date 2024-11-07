@@ -44,6 +44,7 @@ Node* createNode(const Question& q) {
 void addChoice (Question& q) {
 	string choiceText;
 	bool hasChoice = false;
+	Choice* lastChoice = nullptr;
 	for (int i = 0; i < 10; ++i) {
 		cout << "Enter choice " << char('A' + i) << ": ";
 		getline(cin, choiceText);
@@ -56,8 +57,15 @@ void addChoice (Question& q) {
 		}
 		Choice* newChoice = createChoice(choiceText);
 
-		newChoice -> next = q.choices;
-		q.choices = newChoice;
+		if (!q.choices) {
+			// If first choice, set as head
+			q.choices = newChoice;
+		} else {
+			lastChoice-> next = newChoice; //Append at the end
+		}
+
+
+		lastChoice = newChoice;
 		hasChoice = true;
 	}
 }
@@ -96,8 +104,6 @@ void addQuestion (Node*& head) {
 	cin.ignore();
 
 	cout << "Enter a question: ";
-	cin >> q.question;
-
 	getline(cin, q.question);
 
 	if (q.type == "mcq") {
@@ -113,6 +119,7 @@ void addQuestion (Node*& head) {
 			}
 			cout << "[Answer not recognized, please try again!]\n";
 		}
+		transform(q.correctAnswer.begin(), q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
 
 	} else if (q.type == "tf") {
 		while (true) {
@@ -163,6 +170,81 @@ void displaySessionLog(Node*& head) {
 
 	cout << "Total questions: " << totalQuestions;
 	cout << "\nTotal point values: " << totalPointValues;
+	cout << "\n\n";
+}
+
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Reverse list back to its order */
+void reverseList(Node*& head) {
+	Node* prev = nullptr;
+	Node* current = head;
+	Node* next = nullptr;
+	while (current != nullptr) {
+		next = current->next;
+		current->next = prev;
+		prev = current;
+		current = next;
+	}
+	head = prev;
+}
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Assessment */
+void startAssessment (Node* head) {
+	Node* current = head;
+	double totalPoints = 0.0, score = 0.0;
+	int totalQuestions = 0, correctQuestions = 0;
+	int qNumber = 1;
+
+	while (current != nullptr) {
+		cout << "Question " << qNumber << ": ";
+		cout << current -> question.question << endl;
+
+		if (current -> question.type == "mcq") {
+			Choice* choice = current -> question.choices;
+			char option = 'A';
+			while (choice != nullptr) {
+				cout << option << ". " << choice -> text << endl;
+				choice = choice -> next;
+				++option;
+			}
+		}
+
+		string userAnswer;
+
+		// cin >> for non-wr and
+		if (current -> question.type == "wr") {
+			cout << "Your answer: ";
+			cin.ignore();
+			getline(cin, userAnswer);
+		} else {
+			cout << "Your answer: ";
+			cin >> userAnswer;
+			cin.ignore();
+		}
+		transform(userAnswer.begin(), userAnswer.end(), userAnswer.begin(), ::tolower);
+
+		if (userAnswer == current -> question.correctAnswer) {
+			cout << "[Your answer is correct!]";
+			score += current -> question.pointValue;
+			correctQuestions++;
+		} else {
+			cout << "[Your answer is incorrect. The correct answer is " << current -> question.correctAnswer << ".]";
+		}
+
+		totalPoints += current -> question.pointValue;
+		++qNumber;
+		++totalQuestions;
+		current = current -> next;
+
+		cout << endl;
+
+
+	}
+
+	cout << "=== Session Log ===\n";
+	cout << "Correct answers: " << correctQuestions << " / " << totalQuestions;
+	cout << "\nFinal score: " << score << " / " << totalPoints;
+	cout << "\n\n";
 }
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -179,6 +261,7 @@ int main () {
 		addQuestion(head);
 		cout << "Question saved. Continue? [y/n]: ";
 		cin >> userContinueInput;
+		cin.ignore();
 		++qNumber;
 	} while (tolower(userContinueInput)=='y');
 
@@ -186,6 +269,18 @@ int main () {
 	if (userContinueInput=='n') {
 		displaySessionLog(head);
 	}
+
+	//Start the Assessment
+	char beginAssessment;
+	cout << "<!> Begin assessment? [y/n]:";
+	cin >> beginAssessment;
+	cin.ignore();
+	if (tolower(beginAssessment)=='y') {
+		reverseList(head);
+		startAssessment(head);
+	}
+
+	cout << "*** Thank you for using the testing service. Goodbye! ***";
 
 
 }
