@@ -134,7 +134,6 @@ void addQuestion (Node*& head) {
 		}
 	} else if (q.type == "wr") {
 		cout << "Type correct answer: ";
-		cin.ignore();
 		getline(cin, q.correctAnswer);
 	}
 
@@ -151,6 +150,160 @@ void addQuestion (Node*& head) {
 	Node* newNode = createNode(q);
 	newNode -> next = head;
 	head = newNode;
+}
+
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Function to add a edit questions from a linked list */
+void editQuestion(Node* head) {
+	// Pull total questions
+	int totalQuestions = 0;
+	Node* current = head;
+	while (current != nullptr) {
+		totalQuestions++;
+		current = current->next;
+	}
+
+	string input;
+	int questionNumber = -1;
+
+	// Prompt until valid input or "quit()" is entered
+	while (true) {
+		cout << "Select a question to edit, or type quit() [1-" << totalQuestions << "]: ";
+		cin >> input;
+		cin.ignore();
+
+		if (input == "quit()") {
+			return;
+		}
+
+		try {
+			questionNumber = stoi(input);
+			if (questionNumber >= 1 && questionNumber <= totalQuestions) {
+				break; // Valid input, exit loop
+			} else {
+				cout << "[That question does not exist! Try again.]\n";
+			}
+		} catch (invalid_argument&) {
+			cout << "[Invalid input! Please enter a valid question number or quit().]\n";
+		}
+	}
+
+	// Go to selected question
+	current = head;
+	for (int i = 1; i < questionNumber && current != nullptr; i++) {
+		current = current->next;
+	}
+
+	if (current != nullptr) {
+		cout << "===============================\n"
+			 << "=== QUESTION " << questionNumber << " ===\n"
+			 << "===============================\n";
+		cout << "1. Type: " << current->question.type << "\n";
+		cout << "2. Question: " << current->question.question << "\n";
+		cout << "3. Answer choices:\n";
+
+		// Display answer choices if type is "mcq"
+		if (current->question.type == "mcq") {
+			Choice* choice = current->question.choices;
+			char option = 'A';
+			while (choice != nullptr) {
+				cout << option << ". " << choice->text << endl;
+				choice = choice->next;
+				++option;
+			}
+		} else {
+			cout << "    [No choices available for this question type.]\n";
+		}
+
+		cout << "4. Correct answer: " << current->question.correctAnswer << "\n";
+
+		// Edit specific fields
+		cout << "Type a number to edit, or type quit(): ";
+		cin >> input;
+		cin.ignore();
+
+		if (input == "quit()") {
+			return;
+		}
+
+		try {
+			int fieldToEdit = stoi(input);
+
+			if (fieldToEdit == 1) {
+				cout << "Enter a new question type: ";
+				cin >> current->question.type;
+				cin.ignore();
+			} else if (fieldToEdit == 2) {
+				cout << "Enter a new question: ";
+				getline(cin, current->question.question);
+			} else if (fieldToEdit == 3 && current->question.type == "mcq") {
+				Choice* choice = current->question.choices;
+				char option = 'A';
+				while (choice != nullptr) {
+					cout << "Enter new text for choice " << option << ": ";
+					getline(cin, input);
+					if (input == "quit()") {
+						return;
+					}
+					choice->text = input;
+					choice = choice->next;
+					++option;
+				}
+			} else if (fieldToEdit == 3) {
+				cout << "[No choices to edit for this question type.]\n";
+			} else if (fieldToEdit == 4) {
+				cout << "Enter new correct answer: ";
+				getline(cin, current->question.correctAnswer);
+			} else {
+				cout << "[Not recognized. No changes made.]\n";
+			}
+		} catch (invalid_argument&) {
+			cout << "[Invalid input! Please enter a valid option number or quit().]\n";
+		}
+	} else {
+		cout << "[No such question exists!]\n";
+	}
+}
+
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Function to delete a question from a  linked list */
+void deleteQuestion(Node*& head) {
+	// Pull total questions
+	int totalQuestions = 0;
+	Node* current = head;
+	while (current != nullptr) {
+		totalQuestions++;
+		current = current->next;
+	}
+
+	int questionNumber;
+	cout << "Select a question to delete [1-" << totalQuestions << "]: ";
+	cin >> questionNumber;
+	cin.ignore();
+
+	if (questionNumber <= 0) {
+		cout << "[That question does not exist!]\n";
+		return;
+	}
+
+	current = head;
+	Node* previous = nullptr;
+	for (int i = 1; i < questionNumber && current != nullptr; ++i) {
+		previous = current;
+		current = current->next;
+	}
+
+	if (current != nullptr) {
+		if (previous == nullptr) {
+			head = current->next;
+		} else {
+			previous->next = current->next;
+		}
+		delete current;
+		cout << "Question " << questionNumber << " deleted.\n";
+	} else {
+		cout << "[No such question exists!]\n";
+	}
 }
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -251,26 +404,41 @@ void startAssessment (Node* head) {
 /* Main Function */
 int main () {
 	Node* head = nullptr; // init the node ptr
-	char userContinueInput;
-	int qNumber = 0;
+	int choice;
+	bool exitProgram = false;
 
 	cout << "*** Welcome to Ben's Testing Service ***\n\n";
 
 	do {
-		cout << "=== Question " << qNumber +1 << " ===\n";
-		addQuestion(head);
-		cout << "Question saved. Continue? [y/n]: ";
-		cin >> userContinueInput;
+		cout << "Do you want to?\n" <<
+			"  1. Create new question.\n" <<
+			"  2. Edit question.\n" <<
+			"  3. Delete question.\n" <<
+			"  4. Finish.\n";
+		cout << "Select an action: ";
+		cin >> choice;
 		cin.ignore();
-		++qNumber;
-	} while (tolower(userContinueInput)=='y');
 
-	// Session Log after no continuation
-	if (userContinueInput=='n') {
-		displaySessionLog(head);
-	}
+		switch(choice) {
+			case 1:
+				addQuestion(head);
+				cout << "Question saved.\n\n";
+				break;;
+			case 2:
+				editQuestion(head);
+				break;
+			case 3:
+				deleteQuestion(head);
+				break;
+			case 4:
+				displaySessionLog(head);
+				exitProgram = true;
+				break;
 
-	//Start the Assessment
+		}
+	} while (!exitProgram);
+
+		//Start the Assessment
 	char beginAssessment;
 	cout << "<!> Begin assessment? [y/n]:";
 	cin >> beginAssessment;
