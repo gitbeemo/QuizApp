@@ -1,3 +1,9 @@
+//=============================================================================
+// Author      : Benjamin Cofield
+// Compile     : g++ project4_Cofield_bjc0070.cpp -o Project4.out
+// Run         : ./Project4.out
+//=============================================================================
+
 #include <algorithm>
 #include <iostream>
 
@@ -11,17 +17,23 @@ struct Choice {
 };
 
 struct Question {
-	string type; // question type
-	string question;
+	string question;           // The question text
+	string type;
 	string correctAnswer;
+	string userAnswer;
 	double pointValue;
+	bool answered;
 	Choice* choices;
+
+	Question() : answered(false), choices(nullptr) {}
 };
 
 struct Node {
 	Question question;
 	Node* next;
+	bool answered;
 };
+
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Create */
@@ -342,63 +354,220 @@ void reverseList(Node*& head) {
 }
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Assessment */
-void startAssessment (Node* head) {
-	Node* current = head;
-	double totalPoints = 0.0, score = 0.0;
-	int totalQuestions = 0, correctQuestions = 0;
-	int qNumber = 1;
+void startAssessment(Node* head) {
+    double totalPoints = 0.0, score = 0.0;
+    int totalQuestions = 0, correctQuestions = 0;
+    int qNumber = 1;
 
-	while (current != nullptr) {
-		cout << "Question " << qNumber << ": ";
-		cout << current -> question.question << endl;
+    // Gather total points and question count
+    Node* temp = head;
+    while (temp != nullptr) {
+        totalPoints += temp->question.pointValue;
+        totalQuestions++;
+        temp = temp->next;
+    }
 
-		if (current -> question.type == "mcq") {
-			Choice* choice = current -> question.choices;
-			char option = 'A';
-			while (choice != nullptr) {
-				cout << option << ". " << choice -> text << endl;
-				choice = choice -> next;
-				++option;
-			}
-		}
+    Node* current = head;
+    int currentQuestionIndex = 0;
+    string input;
 
-		string userAnswer;
+    cout << "<!> Begin assessment? [y/n]: ";
+    cin >> input;
+    if (input != "y") return;
 
-		// cin >> for non-wr and
-		if (current -> question.type == "wr") {
-			cout << "Your answer: ";
-			cin.ignore();
-			getline(cin, userAnswer);
-		} else {
-			cout << "Your answer: ";
-			cin >> userAnswer;
-			cin.ignore();
-		}
-		transform(userAnswer.begin(), userAnswer.end(), userAnswer.begin(), ::tolower);
+    while (true) {
+        // Find the current question node
+        Node* questionNode = head;
+        for (int i = 0; i < currentQuestionIndex; ++i) {
+            questionNode = questionNode->next;
+        }
 
-		if (userAnswer == current -> question.correctAnswer) {
-			cout << "[Your answer is correct!]";
-			score += current -> question.pointValue;
-			correctQuestions++;
-		} else {
-			cout << "[Your answer is incorrect. The correct answer is " << current -> question.correctAnswer << ".]";
-		}
+        // Display the question
+        cout << "\nQuestion " << currentQuestionIndex + 1 << ": " << questionNode->question.question << endl;
 
-		totalPoints += current -> question.pointValue;
-		++qNumber;
-		++totalQuestions;
-		current = current -> next;
+        // Display choices for MCQ type questions
+        if (questionNode->question.type == "mcq") {
+            Choice* choice = questionNode->question.choices;
+            char option = 'A';
+            while (choice != nullptr) {
+                cout << option << ". " << choice->text << endl;
+                choice = choice->next;
+                ++option;
+            }
+        }
 
-		cout << endl;
+        // Input answer
+        cout << "Your answer: ";
+        if (questionNode->question.type == "wr") {
+            cin.ignore();
+            getline(cin, questionNode->question.userAnswer);
+        } else {
+            cin >> questionNode->question.userAnswer;
+            cin.ignore();
+        }
 
+        // Convert answer to lowercase
+        transform(questionNode->question.userAnswer.begin(), questionNode->question.userAnswer.end(), questionNode->question.userAnswer.begin(), ::tolower);
 
-	}
+        // Mark question as answered
+        questionNode->answered = !questionNode->question.userAnswer.empty();
 
-	cout << "=== Session Log ===\n";
-	cout << "Correct answers: " << correctQuestions << " / " << totalQuestions;
-	cout << "\nFinal score: " << score << " / " << totalPoints;
-	cout << "\n\n";
+        // Check if all questions are answered
+        bool allAnswered = true;
+        temp = head;
+        while (temp != nullptr) {
+            if (!temp->answered) {
+                allAnswered = false;
+                break;
+            }
+            temp = temp->next;
+        }
+
+        // Action menu
+        while (true) {
+            if (allAnswered) {
+                cout << "All questions answered. Do you want to?\n1. Edit an answer.\n2. Submit.\nSelect an action: ";
+            } else {
+                cout << "Do you want to?\n1. Go to next unanswered question.\n2. Jump to question.\n3. Submit.\nSelect an action: ";
+            }
+
+            cin >> input;
+
+            if (input == "1") { // Go to next unanswered question or edit answer if all are answered
+                if (allAnswered) {
+                    int editQuestion;
+                    cout << "Select question number to edit [1-" << totalQuestions << "]: ";
+                    cin >> editQuestion;
+                    if (editQuestion >= 1 && editQuestion <= totalQuestions) {
+                        currentQuestionIndex = editQuestion - 1;
+                        break;
+                    } else {
+                        cout << "[Invalid question number!]\n";
+                    }
+                } else {
+                    // Move to next unanswered question
+                    Node* nextNode = head;
+                    int nextIndex = 0;
+                    bool foundUnanswered = false;
+                    for (int i = 0; i < totalQuestions; i++) {
+                        if (!nextNode->answered) {
+                            foundUnanswered = true;
+                            currentQuestionIndex = nextIndex;
+                            break;
+                        }
+                        nextNode = nextNode->next;
+                        nextIndex++;
+                    }
+                    if (!foundUnanswered) {
+                        cout << "All questions have been answered. Moving to the next question in sequence.\n";
+                        currentQuestionIndex = (currentQuestionIndex + 1) % totalQuestions;
+                    }
+                    break;
+                }
+            } else if (input == "2") { // Jump to specific question
+                if (allAnswered) { // If all questions are answered, treat option 2 as "Submit"
+                    cout << "/!\\ Assessment Complete.\n";
+                    cout << "=== SESSION LOG ===\n";
+                    correctQuestions = 0;
+                    score = 0.0;
+
+                    // Display session log and calculate score
+                    temp = head;
+                    while (temp != nullptr) {
+                        cout << "Question " << qNumber << ": " << temp->question.question << endl;
+                        cout << "Correct answer: " << temp->question.correctAnswer << endl;
+                        cout << "Your answer: " << temp->question.userAnswer << endl;
+
+                        if (temp->question.userAnswer == temp->question.correctAnswer) {
+                            cout << "[Correct]\n";
+                            score += temp->question.pointValue;
+                            correctQuestions++;
+                        } else {
+                            cout << "[Incorrect]\n";
+                        }
+
+                        temp = temp->next;
+                        qNumber++;
+                    }
+
+                    cout << "Correct answers: " << correctQuestions << "/" << totalQuestions << endl;
+                    cout << "Final score: " << score << "/" << totalPoints << endl;
+                    cout << "*** Thank you for using the testing service. Goodbye! ***\n";
+                    return;
+                }
+
+                int jumpTo;
+                cout << "Jump to question [1-" << totalQuestions << "]: ";
+                cin >> jumpTo;
+                if (jumpTo >= 1 && jumpTo <= totalQuestions) {
+                    currentQuestionIndex = jumpTo - 1;
+                    questionNode = head;
+                    for (int i = 0; i < currentQuestionIndex; ++i) {
+                        questionNode = questionNode->next;
+                    }
+
+                    cout << "You answered: " << questionNode->question.userAnswer << endl;
+                    cout << "Do you want to edit this answer? [y/n]: ";
+                    cin >> input;
+
+                    if (input == "y") {
+                        cout << "New answer: ";
+                        if (questionNode->question.type == "wr") {
+                            cin.ignore(); // ignore any leftover newline character
+                            getline(cin, questionNode->question.userAnswer);
+                        } else {
+                            cin >> questionNode->question.userAnswer;
+                            cin.ignore(); // clear any extra newline
+                        }
+                    }
+
+                    // After editing or not editing, return to the menu prompt
+                    break;
+                } else {
+                    cout << "[Invalid question number!]\n";
+                }
+            } else if (input == "3" || (allAnswered && input == "2")) { // Submit assessment
+                if (!allAnswered) {
+                    cout << "Some questions are unanswered. Are you sure you want to submit? [y/n]: ";
+                    cin >> input;
+                    if (input != "y") continue;
+                }
+
+                cout << "/!\\ Assessment Complete.\n";
+                cout << "=== SESSION LOG ===\n";
+                correctQuestions = 0;
+                score = 0.0;
+
+                // Display session log and calculate score
+                temp = head;
+                while (temp != nullptr) {
+                    cout << "Question " << qNumber << ": " << temp->question.question << endl;
+                    cout << "Correct answer: " << temp->question.correctAnswer << endl;
+                    cout << "Your answer: " << temp->question.userAnswer << endl;
+
+                    if (temp->question.userAnswer == temp->question.correctAnswer) {
+                        cout << "[Correct]\n";
+                        score += temp->question.pointValue;
+                        correctQuestions++;
+                    } else {
+                        cout << "[Incorrect]\n";
+                    }
+
+                    temp = temp->next;
+                    qNumber++;
+                }
+
+                cout << "Correct answers: " << correctQuestions << "/" << totalQuestions << endl;
+                cout << "Final score: " << score << "/" << totalPoints << endl;
+                cout << "*** Thank you for using the testing service. Goodbye! ***\n";
+                return;
+            } else {
+                cout << "[Invalid action selected! Try again.]\n";
+            }
+        }
+    }
 }
+
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Main Function */
@@ -438,15 +607,9 @@ int main () {
 		}
 	} while (!exitProgram);
 
-		//Start the Assessment
-	char beginAssessment;
-	cout << "<!> Begin assessment? [y/n]:";
-	cin >> beginAssessment;
-	cin.ignore();
-	if (tolower(beginAssessment)=='y') {
-		reverseList(head);
-		startAssessment(head);
-	}
+	//Start the Assessment
+	reverseList(head);
+	startAssessment(head);
 
 	cout << "*** Thank you for using the testing service. Goodbye! ***";
 
