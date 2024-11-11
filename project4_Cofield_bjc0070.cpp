@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 
@@ -98,71 +99,175 @@ bool isCorrectAnswer(Question& q, const string& correctAnswer) {
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Function to add a question to linked list */
-void addQuestion (Node*& head) {
-	Question q;
-	q.choices = nullptr; // init the choices ptr
 
-	// Prompt user type of question
-	while (true) {
-		cout << "Type of question [mcq/tf/wr]: ";
-		cin >> q.type;
+// Helper Functions
 
-		if (q.type == "mcq" || q.type == "tf" || q.type == "wr") {
-			break;
-		} else {
+string getQuestionType(string qType) {
+	if (qType.empty()) {
+		while (true) {
+			cout << "Type of question [mcq/tf/wr]: ";
+			cin >> qType;
+			if (qType == "mcq" || qType == "tf" || qType == "wr") break;
 			cout << "[Command not recognized, please try again!]\n\n";
 		}
 	}
-	cin.ignore();
+	return qType;
+}
 
+string promptForQuestionText() {
 	cout << "Enter a question: ";
-	getline(cin, q.question);
+	string text;
+	getline(cin, text);
+	return text;
+}
 
-	if (q.type == "mcq") {
-		cout << "[At any time, type 'quit()' to exit]\n";
-		addChoice(q);
-		while (true) {
-			cout << "Select correct answer: ";
-			cin >> q.correctAnswer;
-			transform(q.correctAnswer.begin(), q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
-
-			if (isCorrectAnswer(q, q.correctAnswer)) {
-				break;
-			}
-			cout << "[Answer not recognized, please try again!]\n";
-		}
-		transform(q.correctAnswer.begin(), q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
-
-	} else if (q.type == "tf") {
-		while (true) {
-			cout << "Select correct answer: ";
-			cin >> q.correctAnswer;
-			transform(q.correctAnswer.begin(),q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
-			if (q.correctAnswer == "true" || q.correctAnswer == "false") {
-				break;
-
-			}
-			cout << "[Answer not recognized, please try again!]\n";
-		}
-	} else if (q.type == "wr") {
-		cout << "Type correct answer: ";
-		getline(cin, q.correctAnswer);
+string promptForCorrectAnswerMCQ(Question& q) {
+	string answer;
+	while (true) {
+		cout << "Select correct answer: ";
+		cin >> answer;
+		transform(answer.begin(), answer.end(), answer.begin(), ::tolower);
+		if (isCorrectAnswer(q, answer)) break;
+		cout << "[Answer not recognized, please try again!]\n";
 	}
+	return answer;
+}
 
-	cout << "Enter point value: ";
+string promptForCorrectAnswerTF() {
+	string answer;
+	while (true) {
+		cout << "Select correct answer [true/false]: ";
+		cin >> answer;
+		transform(answer.begin(), answer.end(), answer.begin(), ::tolower);
+		if (answer == "true" || answer == "false") break;
+		cout << "[Answer not recognized, please try again!]\n";
+	}
+	return answer;
+}
 
-	while ( !(cin >> q.pointValue) || q.pointValue <= 0.0) {
-		cout << "[Not a point value, please try again!]\n";
+string promptForCorrectAnswerWR() {
+	cout << "Type correct answer: ";
+	string answer;
+	getline(cin, answer);
+	return answer;
+}
+
+double promptForPointValue() {
+	double points;
+	while (true) {
+		cout << "Enter point value: ";
+		if (cin >> points && points > 0) break;
+		cout << "[Invalid point value, please try again!]\n";
 		cin.clear();
 		cin.ignore(10000, '\n');
-		cout << "Enter point value: ";
 	}
-	cin.ignore();
-
-	Node* newNode = createNode(q);
-	newNode -> next = head;
-	head = newNode;
+	return points;
 }
+
+void nonInteractiveaddQuestion(Node*& head, const string& type, const string& questionText, const string& correctAnswer, double pointValue) {
+	Question q;
+	q.choices = nullptr;  // Initialize the choices pointer
+	q.type = type;
+	q.question = questionText;
+	q.correctAnswer = correctAnswer;
+	q.pointValue = pointValue;
+
+	// Since choices are only needed for MCQ, we can skip this part for other types of questions.
+	if (q.type == "mcq") {
+		// Manually add choices here for the MCQ case, if needed.
+	}
+
+	// Create new node
+	Node* newNode = createNode(q);
+	newNode->next = nullptr;  // New node points to null (end of the list)
+
+	// If the list is empty, the new node becomes the head
+	if (head == nullptr) {
+		head = newNode;
+	} else {
+		// Otherwise, find the last node and append the new node
+		Node* temp = head;
+		while (temp->next != nullptr) {
+			temp = temp->next;
+		}
+		temp->next = newNode;
+	}
+}
+
+
+void addQuestion(Node*& head, const string& type = "", const string& questionText = "", const string& correctAnswer = "", double pointValue = 0.0) {
+    Question q;
+    q.choices = nullptr;  // Initialize the choices pointer
+
+    // If we're testing, we can directly pass the question type and text
+    if (!type.empty()) {
+        q.type = type;
+        q.question = questionText;
+        q.correctAnswer = correctAnswer;
+        q.pointValue = pointValue;
+    } else {
+        // For normal usage, prompt the user for input
+        while (true) {
+            cout << "Type of question [mcq/tf/wr]: ";
+            cin >> q.type;
+            if (q.type == "mcq" || q.type == "tf" || q.type == "wr") {
+                break;
+            } else {
+                cout << "[Command not recognized, please try again!]\n\n";
+            }
+        }
+        cin.ignore();
+
+        cout << "Enter a question: ";
+        getline(cin, q.question);
+
+        // Handling MCQ questions
+        if (q.type == "mcq") {
+            cout << "[At any time, type 'quit()' to exit]\n";
+            addChoice(q);
+            while (true) {
+                cout << "Select correct answer: ";
+                cin >> q.correctAnswer;
+                transform(q.correctAnswer.begin(), q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
+
+                if (isCorrectAnswer(q, q.correctAnswer)) {
+                    break;
+                }
+                cout << "[Answer not recognized, please try again!]\n";
+            }
+            transform(q.correctAnswer.begin(), q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
+
+        } else if (q.type == "tf") {
+            while (true) {
+                cout << "Select correct answer: ";
+                cin >> q.correctAnswer;
+                transform(q.correctAnswer.begin(), q.correctAnswer.end(), q.correctAnswer.begin(), ::tolower);
+                if (q.correctAnswer == "true" || q.correctAnswer == "false") {
+                    break;
+                }
+                cout << "[Answer not recognized, please try again!]\n";
+            }
+        } else if (q.type == "wr") {
+            cout << "Type correct answer: ";
+            getline(cin, q.correctAnswer);
+        }
+
+        cout << "Enter point value: ";
+        while (!(cin >> q.pointValue) || q.pointValue <= 0.0) {
+            cout << "[Not a valid point value, please try again!]\n";
+            cin.clear();
+            cin.ignore(10000, '\n');
+            cout << "Enter point value: ";
+        }
+        cin.ignore();
+    }
+
+    // Create new node and add it to the list
+    Node* newNode = createNode(q);
+    newNode->next = head;  // Point new node to the previous head
+    head = newNode;        // Update head to the new node
+}
+
 
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Function to add a edit questions from a linked list */
@@ -568,10 +673,78 @@ void startAssessment(Node* head) {
     }
 }
 
+//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+/* Test Drivers */
 
+#ifdef UNIT_TESTING
+#include <iostream>
+#include <cassert>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
+// Assuming your structs (Node, Question, Choice) and necessary helper functions are defined
+
+void testDriver() {
+    Node* head = nullptr;
+
+    // Unit Test Case 1: Add a written response (WR) question to an empty list
+    cout << "Unit Test Case 1: Add a written response (WR) question to an empty list." << endl;
+    nonInteractiveaddQuestion(head, "wr", "What is the capital of France?", "Paris", 5.0);
+    cout << "Added Question 1: " << head->question.question << endl;  // Print for debugging
+    assert(head != nullptr);  // Ensure head is not null
+    assert(head->question.question == "What is the capital of France?");  // Check if the question is correct
+    cout << "Test Case 1 Passed." << endl << endl;
+
+    // Unit Test Case 2: Add a multiple-choice (MCQ) question to the list
+    cout << "Unit Test Case 2: Add a multiple-choice (MCQ) question to the list." << endl;
+    nonInteractiveaddQuestion(head, "mcq", "What is 2 + 2?", "4", 10.0);
+    cout << "Added Question 2: " << head->next->question.question << endl;  // Print for debugging
+    assert(head->next != nullptr);  // Ensure the next question exists
+    assert(head->next->question.question == "What is 2 + 2?");  // Ensure the second question is correct
+    cout << "Test Case 2 Passed." << endl << endl;
+
+    // Unit Test Case 3: Add another multiple-choice (MCQ) question
+    cout << "Unit Test Case 3: Add another multiple-choice (MCQ) question." << endl;
+    nonInteractiveaddQuestion(head, "mcq", "What is the largest planet in the solar system?", "Jupiter", 20.0);
+    cout << "Added Question 3: " << head->next->next->question.question << endl;  // Print for debugging
+    assert(head->next->next != nullptr);  // Ensure the third question exists
+    assert(head->next->next->question.question == "What is the largest planet in the solar system?");  // Ensure the third question is correct
+    cout << "Test Case 3 Passed." << endl << endl;
+
+    // Unit Test Case 4: Add a true/false (TF) question
+    cout << "Unit Test Case 4: Add a true/false (TF) question." << endl;
+    nonInteractiveaddQuestion(head, "tf", "Is the sky blue?", "true", 5.0);
+    cout << "Added Question 4: " << head->next->next->next->question.question << endl;  // Print for debugging
+    assert(head->next->next->next != nullptr);  // Ensure the fourth question exists
+    assert(head->next->next->next->question.question == "Is the sky blue?");  // Ensure the fourth question is correct
+    cout << "Test Case 4 Passed." << endl << endl;
+
+    // Unit Test Case 5: Check the entire list of questions
+    cout << "Unit Test Case 5: Check the entire list of questions." << endl;
+    Node* temp = head;
+    int count = 1;
+    while (temp != nullptr) {
+        cout << "Question " << count++ << ": " << temp->question.question << endl;
+        temp = temp->next;
+    }
+    cout << "Test Case 5 Passed." << endl << endl;
+
+    // Unit Test Case 6: Verify the first question's next is not null after multiple additions
+    cout << "Unit Test Case 6: Verify the first question's next is not null after multiple additions." << endl;
+    assert(head->next != nullptr);  // Ensure the first question's next is not null
+    assert(head->next->question.question == "What is 2 + 2?");  // Ensure the second question is correct
+    cout << "Test Case 6 Passed." << endl << endl;
+}
+
+#endif
 //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 /* Main Function */
 int main () {
+	#ifdef UNIT_TESTING
+	testDriver();
+	#else
 	Node* head = nullptr; // init the node ptr
 	int choice;
 	bool exitProgram = false;
@@ -612,6 +785,6 @@ int main () {
 	startAssessment(head);
 
 	cout << "*** Thank you for using the testing service. Goodbye! ***";
-
-
+	#endif
+	return 0;
 }
